@@ -33,7 +33,7 @@ If macOS blocks access, allow your terminal under **System Settings > Privacy & 
 
 **Install (no build needed):**
 
-1. Download `SwarmGlow-0.1.0.zip` from the [latest release](https://github.com/JScoder4005/kreo-swarm75-mac/releases/latest), unzip it, and move **SwarmGlow.app** to **Applications**.
+1. Download `SwarmGlow-0.1.1.zip` from the [latest release](https://github.com/JScoder4005/kreo-swarm75-mac/releases/latest), unzip it, and move **SwarmGlow.app** to **Applications**.
 2. Open it. macOS will say it can't verify the developer, because the app isn't notarized by Apple.
    Go to **System Settings > Privacy & Security**, scroll down, and click **Open Anyway**. You only do this once.
 3. Allow **SwarmGlow** under **System Settings > Privacy & Security > Input Monitoring**, then reopen it.

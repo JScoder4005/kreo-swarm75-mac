@@ -24,6 +24,10 @@ extension Color {
 struct KeyboardPreview: View {
     let settings: LightingSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    // Only animate while the window is in front; in the background the preview costs nothing.
+    @Environment(\.controlActiveState) private var activeState
+
+    private var paused: Bool { reduceMotion || activeState == .inactive }
 
     private static let rows: [[Double]] = [
         Array(repeating: 1, count: 16),
@@ -46,10 +50,11 @@ struct KeyboardPreview: View {
     }()
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 30, paused: reduceMotion)) { ctx in
+        TimelineView(.animation(minimumInterval: 1 / 15, paused: paused || settings.effect == 1)) { ctx in
             Canvas { g, size in
                 draw(&g, size: size, t: reduceMotion ? 1.5 : ctx.date.timeIntervalSinceReferenceDate)
             }
+            .drawingGroup()  // rasterize on the GPU so each frame is one layer update
         }
         .aspectRatio(16.0 / 6.4, contentMode: .fit)
         .padding(14)
