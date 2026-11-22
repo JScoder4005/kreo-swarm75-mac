@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kreo Swarm75 Lighting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main>
+  <header>
+    <h1>Kreo Swarm75</h1>
+    <div class="conn" id="conn" data-state="off">
+      <span class="dot"></span><span id="status" role="status" aria-live="polite">Not connected</span>
+      <button class="btn primary" id="connect">Connect keyboard</button>
+    </div>
+  </header>
+
+  <section class="board" aria-label="Keyboard preview">
+    <div id="keys"></div>
+    <p class="hint" id="hint">Type on your keyboard to see key-press effects. The preview approximates the real effects.</p>
+  </section>
+
+  <section class="panel">
+    <div class="cols">
+      <div>
+        <h2>Color</h2>
+        <div class="colorrow">
+          <input id="color" type="color" value="#ff4d5e" aria-label="Pick a color">
+          <input id="hex" type="text" value="#ff4d5e" maxlength="7" spellcheck="false" aria-label="Hex color">
+        </div>
+        <div class="swatches" id="swatches"></div>
+        <p class="note" id="colornote"></p>
+      </div>
+      <div>
+        <h2>Effect</h2>
+        <div class="modes" id="modes"></div>
+      </div>
+    </div>
+    <div class="sliders">
+      <label class="slide"><span>Brightness <output id="bv">100%</output></span>
+        <input id="brightness" type="range" min="0" max="100" value="100"></label>
+      <label class="slide"><span>Speed <output id="sv">50%</output></span>
+        <input id="speed" type="range" min="0" max="100" value="50"></label>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Profiles</h2>
+    <form class="save" id="saveform">
+      <input id="pname" type="text" placeholder="Name this look" maxlength="24" aria-label="Profile name">
+      <button class="btn" type="submit">Save profile</button>
+    </form>
+    <div class="profiles" id="profiles"></div>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>
