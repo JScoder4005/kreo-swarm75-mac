@@ -19,11 +19,30 @@ extension Color {
     }
 }
 
+// For README screenshots and the demo GIF: AppKit controls can't render offscreen, and the
+// preview needs a fixed moment in time.
+private struct SnapshotModeKey: EnvironmentKey { static let defaultValue = false }
+private struct FrozenTimeKey: EnvironmentKey { static let defaultValue: Double? = nil }
+
+public extension EnvironmentValues {
+    var snapshotMode: Bool {
+        get { self[SnapshotModeKey.self] }
+        set { self[SnapshotModeKey.self] = newValue }
+    }
+    var previewFrozenTime: Double? {
+        get { self[FrozenTimeKey.self] }
+        set { self[FrozenTimeKey.self] = newValue }
+    }
+}
+
 /// A drawn Swarm 75 that plays an approximation of the chosen effect. Purely visual: it never
 /// reads the keyboard, and reactive effects are shown with simulated key presses.
-struct KeyboardPreview: View {
+public struct KeyboardPreview: View {
     let settings: LightingSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.previewFrozenTime) private var frozenTime
+
+    public init(settings: LightingSettings) { self.settings = settings }
     // Only animate while the window is in front; in the background the preview costs nothing.
     @Environment(\.controlActiveState) private var activeState
 
@@ -49,12 +68,18 @@ struct KeyboardPreview: View {
         return out
     }()
 
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1 / 15, paused: paused || settings.effect == 1)) { ctx in
-            Canvas { g, size in
-                draw(&g, size: size, t: reduceMotion ? 1.5 : ctx.date.timeIntervalSinceReferenceDate)
+    public var body: some View {
+        Group {
+            if let frozenTime {
+                Canvas { g, size in draw(&g, size: size, t: frozenTime) }
+            } else {
+                TimelineView(.animation(minimumInterval: 1 / 15, paused: paused || settings.effect == 1)) { ctx in
+                    Canvas { g, size in
+                        draw(&g, size: size, t: reduceMotion ? 1.5 : ctx.date.timeIntervalSinceReferenceDate)
+                    }
+                    .drawingGroup()  // rasterize on the GPU so each frame is one layer update
+                }
             }
-            .drawingGroup()  // rasterize on the GPU so each frame is one layer update
         }
         .aspectRatio(16.0 / 6.4, contentMode: .fit)
         .padding(14)

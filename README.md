@@ -1,21 +1,56 @@
 # kreo-swarm75-mac
 
-Control the RGB lighting of a **Kreo Swarm75** keyboard from a Mac. Kreo's own software is Windows-only.
+**SwarmGlow:** control the RGB lighting of a **Kreo Swarm 75** keyboard from your Mac.
+Kreo's own software is Windows-only; this is the missing Mac app, plus a CLI and a web page.
 
 <p align="center">
-  <img src="docs/preview.svg" alt="Animated rainbow wave across a keyboard preview" width="760">
+  <img src="docs/swarmglow-demo.gif" alt="SwarmGlow's live keyboard preview cycling through rainbow wave, breathing, ripples, snake and static effects" width="680">
 </p>
 
-- **SwarmGlow**, a native macOS app that applies your lighting automatically when you plug the keyboard in
+<p align="center">
+  <a href="https://github.com/JScoder4005/kreo-swarm75-mac/releases/latest"><b>Download SwarmGlow for macOS</b></a>
+  &nbsp;·&nbsp; free and open source (MIT) &nbsp;·&nbsp; Apple Silicon and Intel, macOS 14+
+</p>
+
+- **SwarmGlow**, a native macOS app: pick a color, effect, brightness and speed, see it on a live keyboard
+  preview, save profiles, and it **applies automatically when you plug the keyboard in**
 - A command-line tool: `kreo set --color ff0000 --mode static --brightness 80`
-- A web page (WebHID, Chrome) with a live keyboard preview, color picker, effect list, sliders and saved profiles
-- Documented protocol notes, decoded from a Windows capture and tested byte by byte on real hardware
+- A web page (WebHID, Chrome) with the same controls
+- Protocol notes, decoded from a Windows capture and tested byte by byte on real hardware
 
-> **Status:** works over **USB**. Lighting set over USB stays in the keyboard, so it survives unplugging and
-> Bluetooth. **Live control over Bluetooth does not work** (see [Limitations](#limitations)).
-> Tested on one keyboard and one Mac. Not affiliated with Kreo.
+> **Status:** works over **USB**. The look is stored in the keyboard, so it stays after you unplug and switch to
+> Bluetooth. **Live control over Bluetooth is not possible**, not even with Kreo's own software
+> (see [Limitations](#limitations)). Tested on one keyboard and one Mac. Not affiliated with Kreo.
 
-## Quick start
+## SwarmGlow (macOS app)
+
+<img src="docs/swarmglow-icon.png" alt="SwarmGlow app icon" width="72" align="right">
+
+<p align="center">
+  <img src="docs/window-dark.png" alt="The SwarmGlow window in dark mode: live keyboard preview, effect tiles, color swatches, brightness and speed bars" width="380">
+  &nbsp;
+  <img src="docs/window-light.png" alt="The SwarmGlow window in light mode" width="380">
+</p>
+
+**Install:**
+
+1. Download `SwarmGlow-0.1.2.zip` from the [latest release](https://github.com/JScoder4005/kreo-swarm75-mac/releases/latest), unzip it, and move **SwarmGlow.app** to **Applications**.
+2. Open it. macOS will say it can't verify the developer, because the app isn't notarized by Apple.
+   Go to **System Settings > Privacy & Security**, scroll down, and click **Open Anyway**. You only do this once.
+3. Turn on **SwarmGlow** under **System Settings > Privacy & Security > Input Monitoring**, then reopen it.
+   The lighting interface shares a USB interface with the keys, so macOS treats it like keyboard access.
+   SwarmGlow only sends lighting reports and never reads keystrokes.
+4. Plug in the cable and set the keyboard's mode switch to **USB/wired** (the cable alone only charges).
+   Your look applies automatically. Unplug and it stays on Bluetooth.
+
+It only talks to keyboards that identify as "Kreo Swarm"; the Kreo Hive 75 and Hive 98 share the same USB ID
+but were never tested, so they are refused.
+
+**Build it yourself:** `cd macos && ./make-app.sh` (needs Xcode). The script signs with a keychain identity
+named `Kreo Local Signing` if you have one (a self-signed code-signing certificate), so the Input Monitoring
+permission survives rebuilds; otherwise it signs ad hoc and you re-allow after each build.
+
+## CLI and web page
 
 ```sh
 git clone https://github.com/JScoder4005/kreo-swarm75-mac.git
@@ -24,30 +59,8 @@ python3 -m venv .venv
 .venv/bin/pip install -r requirements.txt      # installs hidapi, nothing else
 ```
 
-Plug the keyboard in with the cable (Bluetooth does not expose the lighting interface).
+Plug the keyboard in with the cable and its switch on USB (Bluetooth does not expose the lighting interface).
 If macOS blocks access, allow your terminal under **System Settings > Privacy & Security > Input Monitoring**.
-
-### macOS app: SwarmGlow
-
-<p align="center"><img src="docs/swarmglow-icon.png" alt="SwarmGlow app icon" width="128"></p>
-
-**Install (no build needed):**
-
-1. Download `SwarmGlow-0.1.1.zip` from the [latest release](https://github.com/JScoder4005/kreo-swarm75-mac/releases/latest), unzip it, and move **SwarmGlow.app** to **Applications**.
-2. Open it. macOS will say it can't verify the developer, because the app isn't notarized by Apple.
-   Go to **System Settings > Privacy & Security**, scroll down, and click **Open Anyway**. You only do this once.
-3. Allow **SwarmGlow** under **System Settings > Privacy & Security > Input Monitoring**, then reopen it.
-   The lighting interface shares a USB interface with the keys, so macOS treats it like keyboard access.
-   SwarmGlow only sends lighting reports and never reads keystrokes.
-4. Plug in the cable and set the keyboard's mode switch to **USB/wired**. Your look applies automatically.
-   Unplug and it stays on Bluetooth.
-
-Universal (Apple Silicon and Intel), macOS 14 or later. It only talks to keyboards that identify as
-"Kreo Swarm"; the Kreo Hive 75 and Hive 98 share the same USB ID but were never tested, so they are refused.
-
-**Build it yourself:** `cd macos && ./make-app.sh` (needs Xcode). The script signs with a keychain identity
-named `Kreo Local Signing` if you have one (a self-signed code-signing certificate), so the Input Monitoring
-permission survives rebuilds; otherwise it signs ad hoc and you re-allow after each build.
 
 ### Command line
 
@@ -111,6 +124,7 @@ captured from the Windows app. Nothing else is sent: no firmware commands, no un
 node tests/web_parity.mjs                               # JS builder produces the same bytes as Python
 (cd macos && swift test)                                # Swift builder produces the same bytes as Python
 .venv/bin/python tools/probe.py --index 18 --values 1,2,3 --hold 6    # sweep a byte, restores static red after
+(cd macos && swift run KreoSnapshot gif ../docs/swarmglow-demo.gif)   # regenerate README images (also: screens, icon)
 ```
 
 ```

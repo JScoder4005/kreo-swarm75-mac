@@ -4,6 +4,7 @@ import SwiftUI
 
 public struct MenuView: View {
     @EnvironmentObject var state: AppState
+    @Environment(\.snapshotMode) private var snapshotMode
     @State private var profileName = ""
 
     public init() {}
@@ -29,7 +30,10 @@ public struct MenuView: View {
     public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             header
+            // Fixed height: the window sizes itself to its content, and a Canvas has no natural size.
             KeyboardPreview(settings: state.settings)
+                .frame(maxWidth: .infinity)
+                .frame(height: 168)
             effectSection
             colorSection
             HStack(alignment: .top, spacing: 20) {
@@ -43,6 +47,8 @@ public struct MenuView: View {
         }
         .padding(20)
         .frame(width: 420)
+        // Don't start with the cursor in the profile name field.
+        .onAppear { DispatchQueue.main.async { NSApp.keyWindow?.makeFirstResponder(nil) } }
     }
 
     // MARK: sections
@@ -124,7 +130,15 @@ public struct MenuView: View {
                     .accessibilityAddTraits(on ? .isSelected : [])
                 }
                 Spacer(minLength: 4)
-                ColorPicker("Custom color", selection: colorBinding, supportsOpacity: false).labelsHidden()
+                if snapshotMode {
+                    // Stand-in for the system color well, which can't render offscreen.
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(AngularGradient(colors: [.red, .yellow, .green, .cyan, .blue, .purple, .red], center: .center))
+                        .frame(width: 38, height: 22)
+                        .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Color.primary.opacity(0.2)))
+                } else {
+                    ColorPicker("Custom color", selection: colorBinding, supportsOpacity: false).labelsHidden()
+                }
             }
         }
     }
@@ -141,7 +155,15 @@ public struct MenuView: View {
                 }
             }
             HStack {
-                TextField("Name this look", text: $profileName).textFieldStyle(.roundedBorder).onSubmit(saveProfile)
+                if snapshotMode {
+                    Text("Name this look").foregroundStyle(.tertiary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal, 7).frame(height: 22)
+                        .background(RoundedRectangle(cornerRadius: 5).fill(Color(nsColor: .textBackgroundColor)))
+                        .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Color.primary.opacity(0.18)))
+                } else {
+                    TextField("Name this look", text: $profileName).textFieldStyle(.roundedBorder).onSubmit(saveProfile)
+                }
                 Button("Save profile", action: saveProfile)
                     .disabled(profileName.trimmingCharacters(in: .whitespaces).isEmpty)
             }

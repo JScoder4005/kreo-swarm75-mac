@@ -1,11 +1,13 @@
-// Renders the SwarmGlow window to PNG files for design review, or the 1024px app icon.
-// Never opens the keyboard.
-// usage: swift run KreoSnapshot <output-dir>
-//        swift run KreoSnapshot icon <file.png>
+// Renders README/release images without opening the keyboard:
+//   swift run KreoSnapshot screens <dir>   window screenshots, dark and light
+//   swift run KreoSnapshot gif <file.gif>  animated demo of the effects
+//   swift run KreoSnapshot icon <file.png> 1024px app icon
 import AppKit
+import ImageIO
 import KreoCore
 import KreoUI
 import SwiftUI
+import UniformTypeIdentifiers
 
 /// A slice of keycaps with per-key underglow sweeping across the spectrum, on a dark plate.
 struct AppIconArt: View {
@@ -46,46 +48,101 @@ struct AppIconArt: View {
     }
 }
 
-if CommandLine.arguments.count == 3, CommandLine.arguments[1] == "icon" {
-    MainActor.assumeIsolated {
-        let renderer = ImageRenderer(content: AppIconArt())
-        renderer.scale = 1
-        if let tiff = renderer.nsImage?.tiffRepresentation,
-           let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) {
-            try? png.write(to: URL(fileURLWithPath: CommandLine.arguments[2]))
-            print("wrote icon")
+/// One frame of the demo GIF: the preview with the effect's name underneath.
+struct DemoFrame: View {
+    let settings: LightingSettings
+    let title: String
+    let time: Double
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            KeyboardPreview(settings: settings)
+            HStack(alignment: .firstTextBaseline) {
+                Text(title).font(.system(size: 22, weight: .bold, design: .rounded)).foregroundStyle(.white)
+                Spacer()
+                Text("SwarmGlow for Kreo Swarm 75").font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.white.opacity(0.55))
+            }
+            .padding(.horizontal, 6)
         }
+        .padding(22)
+        .frame(width: 680)
+        .background(Color(red: 0.055, green: 0.063, blue: 0.09))
+        .environment(\.previewFrozenTime, time)
     }
-    exit(0)
 }
 
-let out = URL(fileURLWithPath: CommandLine.arguments.dropFirst().first ?? ".")
-let profiles = [
-    Profile(name: "Work", settings: LightingSettings(color: RGB(47, 123, 255), effect: 1, brightness: 75, speed: 50)),
-    Profile(name: "Gaming", settings: LightingSettings(color: RGB(255, 59, 59), effect: 7, brightness: 100, speed: 75)),
-]
+@MainActor func png(_ view: some View, scale: CGFloat) -> Data? {
+    let r = ImageRenderer(content: view)
+    r.scale = scale
+    guard let tiff = r.nsImage?.tiffRepresentation else { return nil }
+    return NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
+}
 
-@MainActor func render(_ name: String, _ state: AppState, dark: Bool) {
-    let view = MenuView()
+@MainActor func window(_ state: AppState, dark: Bool) -> some View {
+    MenuView()
         .environmentObject(state)
+        .environment(\.snapshotMode, true)
+        .environment(\.previewFrozenTime, 2.2)
         .background(Color(nsColor: .windowBackgroundColor))
         .environment(\.colorScheme, dark ? .dark : .light)
-    let renderer = ImageRenderer(content: view)
-    renderer.scale = 2
-    guard let image = renderer.nsImage, let tiff = image.tiffRepresentation,
-          let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else {
-        print("failed: \(name)"); return
-    }
-    try? png.write(to: out.appendingPathComponent("\(name).png"))
-    print("wrote \(name).png")
 }
+
+let args = Array(CommandLine.arguments.dropFirst())
+guard args.count == 2 else {
+    print("usage: KreoSnapshot screens <dir> | gif <file.gif> | icon <file.png>")
+    exit(1)
+}
+let target = URL(fileURLWithPath: args[1])
 
 MainActor.assumeIsolated {
     _ = NSApplication.shared
-    render("connected-dark", .preview(LightingSettings(color: RGB(255, 59, 59), effect: 2, brightness: 75, speed: 50),
-                                      profiles: profiles, connected: true), dark: true)
-    render("static-light", .preview(LightingSettings(color: RGB(47, 123, 255), effect: 1, brightness: 75, speed: 50),
-                                    profiles: profiles, connected: true), dark: false)
-    render("unplugged-dark", .preview(LightingSettings(color: RGB(61, 220, 132), effect: 10, brightness: 100, speed: 25),
-                                      connected: false), dark: true)
+    switch args[0] {
+    case "icon":
+        try? png(AppIconArt(), scale: 1)?.write(to: target)
+        print("wrote icon")
+
+    case "screens":
+        let profiles = [
+            Profile(name: "Work", settings: LightingSettings(color: RGB(47, 123, 255), effect: 1, brightness: 75, speed: 50)),
+            Profile(name: "Gaming", settings: LightingSettings(color: RGB(255, 59, 59), effect: 2, brightness: 100, speed: 75)),
+            Profile(name: "Night", settings: LightingSettings(color: RGB(138, 92, 255), effect: 3, brightness: 25, speed: 25)),
+        ]
+        let shots: [(String, AppState, Bool)] = [
+            ("window-dark", .preview(profiles[1].settings, profiles: profiles, connected: true), true),
+            ("window-light", .preview(profiles[0].settings, profiles: profiles, connected: true), false),
+        ]
+        for (name, state, dark) in shots {
+            try? png(window(state, dark: dark), scale: 2)?.write(to: target.appendingPathComponent("\(name).png"))
+            print("wrote \(name).png")
+        }
+
+    case "gif":
+        let fps = 12.0
+        let scenes: [(LightingSettings, String, Double)] = [
+            (LightingSettings(color: RGB(255, 59, 59), effect: 2, brightness: 100, speed: 50), "Rainbow wave", 3),
+            (LightingSettings(color: RGB(138, 92, 255), effect: 3, brightness: 100, speed: 50), "Breathing", 3),
+            (LightingSettings(color: RGB(23, 200, 200), effect: 7, brightness: 100, speed: 50), "Ripples", 3),
+            (LightingSettings(color: RGB(61, 220, 132), effect: 10, brightness: 100, speed: 50), "Retro snake", 3),
+            (LightingSettings(color: RGB(47, 123, 255), effect: 1, brightness: 100, speed: 50), "Static", 1.5),
+        ]
+        var frames: [CGImage] = []
+        for (settings, title, seconds) in scenes {
+            for i in 0..<Int(seconds * fps) {
+                let r = ImageRenderer(content: DemoFrame(settings: settings, title: title, time: Double(i) / fps))
+                r.scale = 1
+                if let img = r.cgImage { frames.append(img) }
+            }
+        }
+        guard let dest = CGImageDestinationCreateWithURL(target as CFURL, UTType.gif.identifier as CFString, frames.count, nil) else {
+            print("could not create gif"); exit(1)
+        }
+        CGImageDestinationSetProperties(dest, [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFLoopCount: 0]] as CFDictionary)
+        let frameProps = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 1 / fps]] as CFDictionary
+        for f in frames { CGImageDestinationAddImage(dest, f, frameProps) }
+        print(CGImageDestinationFinalize(dest) ? "wrote gif, \(frames.count) frames" : "gif failed")
+
+    default:
+        print("unknown mode \(args[0])")
+    }
 }
