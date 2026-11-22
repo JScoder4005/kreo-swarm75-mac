@@ -2,7 +2,9 @@
 //   swift run KreoSnapshot screens <dir>   window screenshots, dark and light
 //   swift run KreoSnapshot gif <file.gif>  animated demo of the effects
 //   swift run KreoSnapshot icon <file.png> 1024px app icon
+//   swift run KreoSnapshot instagram <dir> 15s Reel (MP4) + 4 carousel slides; reads ../docs/window-*.png
 import AppKit
+import AVFoundation
 import ImageIO
 import KreoCore
 import KreoUI
@@ -70,6 +72,197 @@ struct DemoFrame: View {
         .background(Color(red: 0.055, green: 0.063, blue: 0.09))
         .environment(\.previewFrozenTime, time)
     }
+}
+
+// MARK: Instagram
+
+enum IG {
+    static let ink = Color.white
+    static let dim = Color.white.opacity(0.62)
+    static let bg = LinearGradient(colors: [Color(red: 0.075, green: 0.085, blue: 0.13), Color(red: 0.03, green: 0.035, blue: 0.05)],
+                                   startPoint: .top, endPoint: .bottom)
+    static let rainbow = LinearGradient(colors: [.cyan, .blue, .purple, .pink, .orange], startPoint: .leading, endPoint: .trailing)
+    static func title(_ s: String, _ size: CGFloat) -> some View {
+        Text(s).font(.system(size: size, weight: .heavy, design: .rounded)).foregroundStyle(ink)
+            .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+    }
+    static func rainbowTitle(_ s: String, _ size: CGFloat) -> some View {
+        Text(s).font(.system(size: size, weight: .heavy, design: .rounded)).foregroundStyle(rainbow)
+            .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+    }
+    static func body(_ s: String, _ size: CGFloat) -> some View {
+        Text(s).font(.system(size: size, weight: .medium, design: .rounded)).foregroundStyle(dim)
+            .multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
+    }
+    static let rainbowLook = LightingSettings(color: RGB(255, 59, 59), effect: 2, brightness: 100, speed: 50)
+}
+
+struct AppIconSmall: View {
+    var size: CGFloat
+    var body: some View { AppIconArt().scaleEffect(size / 1024).frame(width: size, height: size) }
+}
+
+/// Window screenshot with a soft shadow, as it looks on a desktop.
+struct WindowShot: View {
+    let image: NSImage
+    let height: CGFloat
+    var body: some View {
+        Image(nsImage: image).resizable().interpolation(.high).scaledToFit().frame(height: height)
+            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .shadow(color: .black.opacity(0.6), radius: 40, y: 18)
+    }
+}
+
+/// 1080×1350 carousel slides.
+struct Slide: View {
+    let index: Int
+    let dark: NSImage
+    let light: NSImage
+
+    var body: some View {
+        ZStack {
+            IG.bg
+            switch index {
+            case 0:
+                VStack(spacing: 34) {
+                    AppIconSmall(size: 170)
+                    IG.rainbowTitle("SwarmGlow", 112)
+                    IG.body("The missing Mac app for the\nKreo Swarm 75 keyboard", 46)
+                    KeyboardPreview(settings: IG.rainbowLook).frame(width: 940, height: 390)
+                        .environment(\.previewFrozenTime, 1.4)
+                }
+            case 1:
+                VStack(spacing: 40) {
+                    IG.title("Pick a look.\nSee it live.", 76)
+                    WindowShot(image: dark, height: 900)
+                }
+            case 2:
+                VStack(spacing: 40) {
+                    IG.title("Save profiles. It applies\nwhen you plug in.", 64)
+                    WindowShot(image: light, height: 900)
+                }
+            default:
+                VStack(alignment: .leading, spacing: 44) {
+                    IG.title("Free & open source", 84)
+                    VStack(alignment: .leading, spacing: 30) {
+                        ForEach(["13 effects, 5-step brightness & speed",
+                                 "Set once over USB, stays on Bluetooth",
+                                 "Apple Silicon + Intel, macOS 14+",
+                                 "Unofficial, not affiliated with Kreo"], id: \.self) { line in
+                            HStack(alignment: .firstTextBaseline, spacing: 18) {
+                                Circle().fill(IG.rainbow).frame(width: 16, height: 16)
+                                Text(line).font(.system(size: 44, weight: .medium, design: .rounded)).foregroundStyle(IG.ink)
+                            }
+                        }
+                    }
+                    Text("Link in bio  →  GitHub").font(.system(size: 52, weight: .bold, design: .rounded))
+                        .foregroundStyle(IG.rainbow).padding(.top, 20)
+                }
+                .padding(.horizontal, 90)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .frame(width: 1080, height: 1350)
+    }
+}
+
+/// One frame of the 1080×1920 Reel. Text stays in the upper two thirds, clear of Instagram's buttons.
+struct ReelFrame: View {
+    let t: Double
+    let dark: NSImage
+
+    private func fade(_ start: Double) -> Double { min(max((t - start) / 0.35, 0), 1) }
+
+    var body: some View {
+        ZStack {
+            IG.bg
+            if t < 3 {
+                VStack(spacing: 60) {
+                    IG.title("Kreo's app is\nWindows-only.", 92).opacity(fade(0))
+                    IG.rainbowTitle("So I built one\nfor Mac.", 92).opacity(fade(1.1))
+                    KeyboardPreview(settings: IG.rainbowLook).frame(width: 980, height: 400)
+                        .environment(\.previewFrozenTime, t).opacity(fade(0.3))
+                }
+                .offset(y: -150)
+            } else if t < 9 {
+                let scenes: [(LightingSettings, String)] = [
+                    (IG.rainbowLook, "Rainbow wave"),
+                    (LightingSettings(color: RGB(138, 92, 255), effect: 3, brightness: 100, speed: 50), "Breathing"),
+                    (LightingSettings(color: RGB(23, 200, 200), effect: 7, brightness: 100, speed: 50), "Ripples"),
+                    (LightingSettings(color: RGB(61, 220, 132), effect: 10, brightness: 100, speed: 50), "Retro snake"),
+                ]
+                let i = min(Int((t - 3) / 1.5), 3)
+                VStack(spacing: 56) {
+                    IG.body("13 effects", 52)
+                    KeyboardPreview(settings: scenes[i].0).frame(width: 1000, height: 410)
+                        .environment(\.previewFrozenTime, t)
+                    IG.title(scenes[i].1, 96)
+                }
+                .offset(y: -170)
+                .opacity(fade(3))
+            } else if t < 12.5 {
+                VStack(spacing: 48) {
+                    IG.title("Live preview · profiles\nauto-applies on plug-in", 64)
+                    WindowShot(image: dark, height: 1100)
+                }
+                .offset(y: -120)
+                .opacity(fade(9))
+            } else {
+                VStack(spacing: 40) {
+                    AppIconSmall(size: 260)
+                    IG.rainbowTitle("SwarmGlow", 130)
+                    IG.body("for the Kreo Swarm 75 on Mac", 54)
+                    Text("Free & open source · Link in bio").font(.system(size: 50, weight: .bold, design: .rounded))
+                        .foregroundStyle(IG.ink).padding(.top, 30)
+                }
+                .offset(y: -180)
+                .opacity(fade(12.5))
+            }
+        }
+        .frame(width: 1080, height: 1920)
+    }
+}
+
+@MainActor func writeReel(to url: URL, dark: NSImage, seconds: Double = 15, fps: Int32 = 30) throws {
+    try? FileManager.default.removeItem(at: url)
+    let size = CGSize(width: 1080, height: 1920)
+    let writer = try AVAssetWriter(outputURL: url, fileType: .mp4)
+    let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
+        AVVideoCodecKey: AVVideoCodecType.h264,
+        AVVideoWidthKey: Int(size.width), AVVideoHeightKey: Int(size.height),
+        AVVideoCompressionPropertiesKey: [AVVideoAverageBitRateKey: 10_000_000],
+    ])
+    input.expectsMediaDataInRealTime = false
+    let adaptor = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input, sourcePixelBufferAttributes: [
+        kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
+        kCVPixelBufferWidthKey as String: Int(size.width), kCVPixelBufferHeightKey as String: Int(size.height),
+    ])
+    writer.add(input)
+    writer.startWriting()
+    writer.startSession(atSourceTime: .zero)
+
+    let frames = Int(seconds * Double(fps))
+    for i in 0..<frames {
+        let r = ImageRenderer(content: ReelFrame(t: Double(i) / Double(fps), dark: dark))
+        r.scale = 1
+        guard let cg = r.cgImage, let pool = adaptor.pixelBufferPool else { continue }
+        var buffer: CVPixelBuffer?
+        CVPixelBufferPoolCreatePixelBuffer(nil, pool, &buffer)
+        guard let pb = buffer else { continue }
+        CVPixelBufferLockBaseAddress(pb, [])
+        let ctx = CGContext(data: CVPixelBufferGetBaseAddress(pb), width: Int(size.width), height: Int(size.height),
+                            bitsPerComponent: 8, bytesPerRow: CVPixelBufferGetBytesPerRow(pb),
+                            space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipFirst.rawValue)
+        ctx?.draw(cg, in: CGRect(origin: .zero, size: size))
+        CVPixelBufferUnlockBaseAddress(pb, [])
+        while !input.isReadyForMoreMediaData { usleep(2000) }
+        adaptor.append(pb, withPresentationTime: CMTime(value: CMTimeValue(i), timescale: fps))
+    }
+    input.markAsFinished()
+    let done = DispatchSemaphore(value: 0)
+    writer.finishWriting { done.signal() }
+    done.wait()
+    if writer.status != .completed { throw writer.error ?? CocoaError(.fileWriteUnknown) }
 }
 
 @MainActor func png(_ view: some View, scale: CGFloat) -> Data? {
@@ -141,6 +334,24 @@ MainActor.assumeIsolated {
         let frameProps = [kCGImagePropertyGIFDictionary: [kCGImagePropertyGIFDelayTime: 1 / fps]] as CFDictionary
         for f in frames { CGImageDestinationAddImage(dest, f, frameProps) }
         print(CGImageDestinationFinalize(dest) ? "wrote gif, \(frames.count) frames" : "gif failed")
+
+    case "instagram":
+        guard let dark = NSImage(contentsOfFile: "../docs/window-dark.png"),
+              let light = NSImage(contentsOfFile: "../docs/window-light.png") else {
+            print("run from macos/: needs ../docs/window-dark.png and window-light.png"); exit(1)
+        }
+        try? FileManager.default.createDirectory(at: target, withIntermediateDirectories: true)
+        for i in 0..<4 {
+            try? png(Slide(index: i, dark: dark, light: light), scale: 1)?
+                .write(to: target.appendingPathComponent("slide-\(i + 1).png"))
+        }
+        print("wrote 4 slides")
+        do {
+            try writeReel(to: target.appendingPathComponent("swarmglow-reel.mp4"), dark: dark)
+            print("wrote reel")
+        } catch {
+            print("reel failed: \(error)")
+        }
 
     default:
         print("unknown mode \(args[0])")
