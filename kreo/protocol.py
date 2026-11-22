@@ -53,9 +53,9 @@ def build_reports(color=b"\xff\x00\x00", mode=1, brightness=None, speed=None, ra
     m = bytearray(MODE_BASE)
     m[MODE_OFFSET] = mode
     if brightness is not None:
-        m[BRIGHTNESS_OFFSET] = round(pct(brightness, "brightness") * 255 / 100)
+        m[BRIGHTNESS_OFFSET] = int(pct(brightness, "brightness") * 255 / 100 + 0.5)  # round half up, same as JS/Swift
     if speed is not None:
-        m[SPEED_OFFSET] = round(pct(speed, "speed") * SPEED_MAX / 100)
+        m[SPEED_OFFSET] = int(pct(speed, "speed") * SPEED_MAX / 100 + 0.5)
     for index, value in raw:
         if not 0 < index < REPORT_LEN or not 0 <= value <= 255:
             raise ValueError(f"bad raw override {index}={value}")

@@ -6,6 +6,7 @@ Control the RGB lighting of a **Kreo Swarm75** keyboard from a Mac. Kreo's own s
   <img src="docs/preview.svg" alt="Animated rainbow wave across a keyboard preview" width="760">
 </p>
 
+- A native **macOS app** that applies your lighting automatically when you plug the keyboard in
 - A command-line tool: `kreo set --color ff0000 --mode static --brightness 80`
 - A web page (WebHID, Chrome) with a live keyboard preview, color picker, effect list, sliders and saved profiles
 - Documented protocol notes, decoded from a Windows capture and tested byte by byte on real hardware
@@ -25,6 +26,22 @@ python3 -m venv .venv
 
 Plug the keyboard in with the cable (Bluetooth does not expose the lighting interface).
 If macOS blocks access, allow your terminal under **System Settings > Privacy & Security > Input Monitoring**.
+
+### macOS app
+
+```sh
+cd macos && ./make-app.sh        # needs Xcode; builds macos/build/Kreo.app
+open build/Kreo.app
+```
+
+A window plus a menu-bar icon with color, effect, brightness and speed (5 steps each), saved profiles, and
+**apply automatically when plugged in**. macOS asks for **Input Monitoring** the first time: the lighting interface
+shares a USB interface with the keyboard keys, so macOS treats it like keyboard access. Kreo only sends lighting
+reports and never reads keystrokes.
+
+`make-app.sh` signs with a keychain identity named `Kreo Local Signing` if you have one (create a self-signed
+code-signing certificate with that name), so the permission survives rebuilds; otherwise it signs ad hoc and you
+re-allow Input Monitoring after each build.
 
 ### Command line
 
@@ -72,9 +89,10 @@ captured from the Windows app. Nothing else is sent: no firmware commands, no un
 ## Limitations
 
 - **USB only.** Over Bluetooth the keyboard shows up as a different device (`0x3554:0xFA07`) whose only vendor channel
-  is a 19-byte report (ID `0x13`). The lighting protocol there is unknown, and Chrome's WebHID blocks Bluetooth keyboards.
-- **Direction is not decoded.** Several "wave" effects (4, 5, 6, 8, 11, 13, 15) look alike and probably differ in
-  direction, speed or palette. Only six effects have names.
+  is a 19-byte report (ID `0x13`). Even Kreo's own software only configures it over USB or the 2.4 GHz receiver.
+  Settings saved over USB stay active on Bluetooth.
+- **Effect names are partial.** Several "wave" effects (4, 5, 6, 8, 11, 13, 15) look alike; only six have names.
+  There is no direction setting on this keyboard.
 - **Speed and brightness steps are approximate.** The exact clamp point for speed and what brightness `0` does are untested.
 - The web preview **approximates** the effects; it is a simulation, not a read-back from the keyboard.
 - **Key remapping** is not implemented and has not been investigated.
@@ -85,10 +103,12 @@ captured from the Windows app. Nothing else is sent: no firmware commands, no un
 ```sh
 .venv/bin/python -m unittest discover -s tests -t .     # protocol builder tests (no hardware)
 node tests/web_parity.mjs                               # JS builder produces the same bytes as Python
+(cd macos && swift test)                                # Swift builder produces the same bytes as Python
 .venv/bin/python tools/probe.py --index 18 --values 1,2,3 --hold 6    # sweep a byte, restores static red after
 ```
 
 ```
+macos/       Swift menu-bar app (KreoCore protocol + tests, KreoMenu app, make-app.sh)
 kreo/        protocol builder, device access, CLI
 web/         WebHID page (index.html, app.js, preview.js, protocol.js)
 tools/       pcap extractor (stdlib), byte probe helpers

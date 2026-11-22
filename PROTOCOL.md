@@ -73,7 +73,7 @@ Values above 15 were not tested. Several "wave" entries probably differ in direc
 
 ### Not decoded
 
-- Direction. Bytes 20-30 and the key table from offset 64 (`ff ff 03 40 04 47 ...`) are unprobed or showed no effect in one mode.
+- Bytes 20-30 and the key table from offset 64 (`ff ff 03 40 04 47 ...`) are unprobed or showed no effect in one mode. (Direction is not a setting on this keyboard.)
 - Exact speed steps (the clamp is somewhere between `0x08` and `0x80`).
 - Brightness `0x00` behaviour.
 - Whether modes 9 and 14 are real "off" modes or unsupported values.
@@ -86,9 +86,26 @@ The report descriptor (read from macOS `ioreg`, nothing sent) has:
 - keyboard (report ID 1, with LED output), a 160-bit key bitmap (ID 2), consumer control (ID 3), system control (ID 4), mouse (ID 5),
 - one vendor collection: usage page `0xFF02`, usage `0x02`, **report ID `0x13`, 19 bytes, Input and Output**. No Feature reports.
 
-The 520-byte USB feature reports cannot be sent over it. The Bluetooth command protocol is unknown and nothing in the
-capture uses it. Lighting set over USB persists after switching to Bluetooth. WebHID in Chrome generally cannot access
+Passive listening on report `0x13` (`tools/ble_listen.swift`, non-exclusive, sends nothing) while pressing the
+keyboard's Fn lighting shortcuts: changing the effect sent nothing; other presses produced only one fixed message,
+always identical regardless of the lighting state:
+
+```
+13 0a 01 00 04 07 00 00 00 00 00 00 00 00 00 00 00 00 00 29   (last byte = sum of the others)
+```
+
+The official Windows software's device config lists only USB `0x258A:0x010C` and a wireless ID `0x3554:0xFA09`
+(the 2.4 GHz receiver), not the Bluetooth `0xFA07`. So even the official software does not configure lighting over
+Bluetooth. Lighting set over USB persists after switching to Bluetooth. WebHID in Chrome generally cannot access
 Bluetooth keyboards.
+
+## Facts from the official software's device config
+
+Read from the installer's per-model config file (not redistributed): 18 lighting effects (including Static,
+Breathing, Color Cycle, Reactive Line, Raindrops, Color Wheel, Reactive Ripples, Twinkling Stars, Retro Snake,
+Neon Stream, Sinewave, Color Waterfall, Blossom), **5 brightness and 5 speed levels**, and **no effect supports a
+direction setting**. Its effect numbering does not map one to one onto the byte-18 values observed above; the
+mapping lives in the program, which has not been analysed.
 
 ## Safety
 

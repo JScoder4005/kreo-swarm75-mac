@@ -6,6 +6,7 @@ const cases = [
   { color: [255, 0, 0], mode: 1, brightness: 80, speed: 50 },
   { color: [0, 170, 255], mode: 3, brightness: 10, speed: 0 },
   { color: [1, 2, 3], mode: 12, brightness: 100, speed: 100 },
+  { color: [9, 9, 9], mode: 5, brightness: 30, speed: 75 },  // .5 rounding cases
 ];
 let bad = 0;
 for (const c of cases) {
