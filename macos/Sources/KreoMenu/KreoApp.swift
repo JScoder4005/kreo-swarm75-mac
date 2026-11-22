@@ -1,3 +1,4 @@
+import KreoUI
 import SwiftUI
 
 @main
@@ -8,12 +9,12 @@ struct KreoApp: App {
         // A normal window and Dock icon, so the app is easy to find even when the
         // menu-bar icon is hidden behind the notch.
         Window("Kreo", id: "main") {
-            MenuView(link: state.link).environmentObject(state)
+            MenuView().environmentObject(state)
         }
         .windowResizability(.contentSize)
 
         MenuBarExtra("Kreo", systemImage: "keyboard") {
-            MenuView(link: state.link).environmentObject(state)
+            MenuView().environmentObject(state)
         }
         .menuBarExtraStyle(.window)
     }

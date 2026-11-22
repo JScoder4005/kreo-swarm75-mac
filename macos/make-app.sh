@@ -4,7 +4,7 @@
 # Input Monitoring permission across rebuilds; falls back to ad hoc signing otherwise.
 set -e
 cd "$(dirname "$0")"
-swift build -c release
+swift build -c release --product KreoMenu
 APP=build/Kreo.app
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
