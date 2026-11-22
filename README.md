@@ -6,7 +6,7 @@ Control the RGB lighting of a **Kreo Swarm75** keyboard from a Mac. Kreo's own s
   <img src="docs/preview.svg" alt="Animated rainbow wave across a keyboard preview" width="760">
 </p>
 
-- A native **macOS app** that applies your lighting automatically when you plug the keyboard in
+- **SwarmGlow**, a native macOS app that applies your lighting automatically when you plug the keyboard in
 - A command-line tool: `kreo set --color ff0000 --mode static --brightness 80`
 - A web page (WebHID, Chrome) with a live keyboard preview, color picker, effect list, sliders and saved profiles
 - Documented protocol notes, decoded from a Windows capture and tested byte by byte on real hardware
@@ -27,21 +27,27 @@ python3 -m venv .venv
 Plug the keyboard in with the cable (Bluetooth does not expose the lighting interface).
 If macOS blocks access, allow your terminal under **System Settings > Privacy & Security > Input Monitoring**.
 
-### macOS app
+### macOS app: SwarmGlow
 
-```sh
-cd macos && ./make-app.sh        # needs Xcode; builds macos/build/Kreo.app
-open build/Kreo.app
-```
+<p align="center"><img src="docs/swarmglow-icon.png" alt="SwarmGlow app icon" width="128"></p>
 
-A window plus a menu-bar icon with color, effect, brightness and speed (5 steps each), saved profiles, and
-**apply automatically when plugged in**. macOS asks for **Input Monitoring** the first time: the lighting interface
-shares a USB interface with the keyboard keys, so macOS treats it like keyboard access. Kreo only sends lighting
-reports and never reads keystrokes.
+**Install (no build needed):**
 
-`make-app.sh` signs with a keychain identity named `Kreo Local Signing` if you have one (create a self-signed
-code-signing certificate with that name), so the permission survives rebuilds; otherwise it signs ad hoc and you
-re-allow Input Monitoring after each build.
+1. Download `SwarmGlow-0.1.0.zip` from the [latest release](https://github.com/JScoder4005/kreo-swarm75-mac/releases/latest), unzip it, and move **SwarmGlow.app** to **Applications**.
+2. Open it. macOS will say it can't verify the developer, because the app isn't notarized by Apple.
+   Go to **System Settings > Privacy & Security**, scroll down, and click **Open Anyway**. You only do this once.
+3. Allow **SwarmGlow** under **System Settings > Privacy & Security > Input Monitoring**, then reopen it.
+   The lighting interface shares a USB interface with the keys, so macOS treats it like keyboard access.
+   SwarmGlow only sends lighting reports and never reads keystrokes.
+4. Plug in the cable and set the keyboard's mode switch to **USB/wired**. Your look applies automatically.
+   Unplug and it stays on Bluetooth.
+
+Universal (Apple Silicon and Intel), macOS 14 or later. It only talks to keyboards that identify as
+"Kreo Swarm"; the Kreo Hive 75 and Hive 98 share the same USB ID but were never tested, so they are refused.
+
+**Build it yourself:** `cd macos && ./make-app.sh` (needs Xcode). The script signs with a keychain identity
+named `Kreo Local Signing` if you have one (a self-signed code-signing certificate), so the Input Monitoring
+permission survives rebuilds; otherwise it signs ad hoc and you re-allow after each build.
 
 ### Command line
 
@@ -108,7 +114,7 @@ node tests/web_parity.mjs                               # JS builder produces th
 ```
 
 ```
-macos/       Swift menu-bar app (KreoCore protocol + tests, KreoMenu app, make-app.sh)
+macos/       SwarmGlow app (KreoCore protocol + tests, KreoUI, SwarmGlow target, make-app.sh)
 kreo/        protocol builder, device access, CLI
 web/         WebHID page (index.html, app.js, preview.js, protocol.js)
 tools/       pcap extractor (stdlib), byte probe helpers

@@ -12,7 +12,13 @@ export async function previouslyGranted() {
   return list.find((d) => d.vendorId === 0x258a && d.productId === 0x010c) ?? null;
 }
 
+// The Kreo Hive 75 and Hive 98 share this VID/PID; the Swarm reports were never tested on them.
+export const SUPPORTED_PRODUCT = "Kreo Swarm";
+
 export async function send(dev, { pal, mode }) {
+  if (!dev.productName.startsWith(SUPPORTED_PRODUCT)) {
+    throw new Error(`Found "${dev.productName}". Only the Kreo Swarm 75 is supported, so nothing was sent.`);
+  }
   if (!dev.opened) await dev.open();
   // WebHID takes the report ID separately; the data excludes byte 0.
   await dev.sendFeatureReport(pal[0], pal.slice(1));

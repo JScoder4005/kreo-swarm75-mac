@@ -104,8 +104,10 @@ public final class AppState: ObservableObject {
         defaults.set(autoApply, forKey: "autoApply")
     }
 
+    /// Reads this app's settings, falling back to the ones saved before the rename to SwarmGlow.
     private static func load<T: Decodable>(_ type: T.Type, _ key: String) -> T? {
-        guard let data = UserDefaults.standard.data(forKey: key) else { return nil }
+        let old = UserDefaults(suiteName: "com.jscoder4005.kreo")
+        guard let data = UserDefaults.standard.data(forKey: key) ?? old?.data(forKey: key) else { return nil }
         return try? JSONDecoder().decode(type, from: data)
     }
 }

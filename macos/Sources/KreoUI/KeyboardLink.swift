@@ -3,11 +3,13 @@ import IOKit.hid
 import KreoCore
 import os
 
-let log = Logger(subsystem: "com.jscoder4005.kreo", category: "hid")
+let log = Logger(subsystem: "com.jscoder4005.swarmglow", category: "hid")
 
 /// Watches for the Swarm75's USB vendor interface and sends lighting reports to it.
 /// Only report ID 0x06 (palette 06 0A, mode 06 04) is ever sent.
 final class KeyboardLink: ObservableObject {
+    static let supportedProduct = "Kreo Swarm"
+
     @Published private(set) var connected = false
     /// Set when macOS refuses access, so the window can say why instead of "not on cable".
     @Published private(set) var problem: String?
@@ -68,6 +70,13 @@ final class KeyboardLink: ObservableObject {
     }
 
     private func attached(_ dev: IOHIDDevice) {
+        // The Kreo Hive 75 and Hive 98 share this VID/PID; the Swarm reports were never tested on them.
+        let name = IOHIDDeviceGetProperty(dev, kIOHIDProductKey as CFString) as? String ?? ""
+        guard name.hasPrefix(Self.supportedProduct) else {
+            log.notice("ignored unsupported keyboard: \(name, privacy: .public)")
+            problem = "Found \"\(name)\". Only the Kreo Swarm 75 is supported, so nothing will be sent."
+            return
+        }
         log.notice("keyboard attached")
         device = dev
         connected = true
