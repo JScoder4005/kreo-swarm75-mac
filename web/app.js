@@ -100,8 +100,15 @@ $("saveform").addEventListener("submit", (e) => {
 async function connected(d) {
   dev = d;
   $("connect").textContent = "Reconnect";
+  $("previewonly").hidden = true;
   setStatus("Connected", "on");
   apply();
+}
+function disconnected() {
+  dev = null;
+  $("connect").textContent = "Connect keyboard";
+  $("previewonly").hidden = false;
+  setStatus("Keyboard unplugged", "off");
 }
 if (!kb.supported()) {
   setStatus("WebHID not available. Use Chrome or Edge.", "err");
@@ -115,6 +122,7 @@ if (!kb.supported()) {
     } catch (e) { setStatus("Connect failed: " + e.message, "err"); }
   };
   kb.previouslyGranted().then((d) => d && d.open().then(() => connected(d)).catch(() => {}));
+  navigator.hid.addEventListener("disconnect", (e) => { if (e.device === dev) disconnected(); });
 }
 
 render();

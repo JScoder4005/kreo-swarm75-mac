@@ -26,6 +26,7 @@ button, input, select { font: inherit; color: inherit; }
 #keys { display: grid; gap: 5px; }
 .krow { display: flex; gap: 5px; }
 .hint { color: var(--mut); font-size: .85rem; margin: 12px 2px 0; }
+.badge { width: fit-content; margin: 0 0 12px; padding: 4px 10px; border-radius: 999px; border: 1px dashed var(--line); color: var(--mut); font-size: .8rem; }
 
 .key {
   --c: transparent; --g: transparent;
